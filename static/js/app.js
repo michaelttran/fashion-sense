@@ -211,7 +211,10 @@
 
     const formData = new FormData();
     const blobs = await Promise.all(selectedFiles.map(resizeImage));
-    blobs.forEach(b => formData.append('images', b));
+    blobs.forEach((b, i) => {
+      const name = selectedFiles[i].name.replace(/\.[^.]+$/, '') + '.jpg';
+      formData.append('images', b, isHeic(selectedFiles[i]) ? selectedFiles[i].name : name);
+    });
     const apiKey = getSavedKey();
     if (apiKey) formData.append('api_key', apiKey);
 
