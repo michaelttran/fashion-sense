@@ -370,8 +370,15 @@ def roast_outfit():
     suggestions        = body.get('suggestions', [])
     items = ', '.join(s.get('item', '') for s in suggestions[:6] if s.get('item'))
 
-    persona_key = body.get('personality', 'trevor_wallace')
+    persona_key = body.get('personality', 'anna_wintour')
     persona_instructions = {
+        'anna_wintour': (
+            "You are roasting this person's fashion in the style of Anna Wintour: glacially "
+            "composed, devastatingly precise, and utterly imperious. No exclamation marks, no "
+            "warmth. Deliver each observation as cold fact from someone who has already "
+            "decided. One raised eyebrow's worth of disdain per sentence — understated, "
+            "final, and twice as lethal for it."
+        ),
         'trevor_wallace': (
             "You are roasting this person's fashion in the style of Trevor Wallace: loud, "
             "hyper-enthusiastic character comedy. Play an exaggerated version of someone "
