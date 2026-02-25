@@ -174,6 +174,11 @@ def analyze_outfit():
     prompt_text = ANALYSIS_PROMPT_MULTI if len(files) > 1 else ANALYSIS_PROMPT_SINGLE
     image_contents.append({'type': 'text', 'text': prompt_text})
 
+    request_api_key = request.form.get('api_key', '').strip()
+    active_client = anthropic.Anthropic(api_key=request_api_key) if request_api_key else client
+    if not request_api_key and not _env_api_key:
+        return jsonify({'error': 'No API key configured. Add your Anthropic API key via the settings (⚙) button.'}), 401
+
     try:
         response = active_client.messages.create(
             model='claude-opus-4-6',

@@ -34,6 +34,46 @@ python app.py
 
 Open http://localhost:5000 in your browser.
 
+## Deploy to Vercel
+
+### 1. Install the Vercel CLI
+
+```bash
+npm i -g vercel
+```
+
+### 2. Deploy
+
+```bash
+vercel
+```
+
+Follow the prompts. When asked about the framework, select **Other**.
+
+### 3. Set your API key as an environment variable
+
+In the Vercel dashboard → Project → Settings → Environment Variables, add:
+
+```
+ANTHROPIC_API_KEY = your_api_key_here
+```
+
+Or via the CLI:
+
+```bash
+vercel env add ANTHROPIC_API_KEY
+```
+
+Then redeploy to apply the variable:
+
+```bash
+vercel --prod
+```
+
+> **Vercel free-tier limits:** Serverless functions time out after 10 seconds and the request body is capped at 4.5 MB. For larger images or slower responses, upgrade to the Pro plan (60s timeout, up to 50 MB body).
+
+---
+
 ## Project structure
 
 ```
@@ -45,6 +85,7 @@ fashion-sense/
 │   ├── css/style.css   # Dark-mode styling
 │   └── js/app.js       # Drag-and-drop upload + results rendering
 ├── requirements.txt
+├── vercel.json         # Vercel build + routing config
 └── .env.example
 ```
 

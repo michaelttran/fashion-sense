@@ -17,13 +17,13 @@
   const btnLoader = analyzeBtn.querySelector('.btn-loader');
 
   // ── API key modal ─────────────────────────────────────────────────────────
-  const settingsBtn   = document.getElementById('settingsBtn');
+  const settingsBtn  = document.getElementById('settingsBtn');
   const settingsBadge = document.getElementById('settingsBadge');
-  const modalOverlay  = document.getElementById('modalOverlay');
-  const modalClose    = document.getElementById('modalClose');
-  const apiKeyInput   = document.getElementById('apiKeyInput');
-  const saveKeyBtn    = document.getElementById('saveKeyBtn');
-  const clearKeyBtn   = document.getElementById('clearKeyBtn');
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalClose   = document.getElementById('modalClose');
+  const apiKeyInput  = document.getElementById('apiKeyInput');
+  const saveKeyBtn   = document.getElementById('saveKeyBtn');
+  const clearKeyBtn  = document.getElementById('clearKeyBtn');
 
   const LS_KEY = 'fashionsense_api_key';
 
@@ -63,25 +63,10 @@
     updateBadge();
   });
 
+  // Initialise badge on load
   updateBadge();
 
-  // ── State ─────────────────────────────────────────────────────────────────
-  let selectedFiles = [];
-
-  // ── File type helpers ─────────────────────────────────────────────────────
-  function isHeic(file) {
-    const ext = file.name.split('.').pop().toLowerCase();
-    return ext === 'heic' || ext === 'heif'
-        || file.type === 'image/heic' || file.type === 'image/heif';
-  }
-
-  const ALLOWED_EXTS = new Set(['jpg','jpeg','png','gif','webp','heic','heif']);
-
-  function isAllowedFile(file) {
-    if (file.type.startsWith('image/') && !file.type.includes('svg')) return true;
-    const ext = file.name.split('.').pop().toLowerCase();
-    return ALLOWED_EXTS.has(ext);
-  }
+  let selectedFile = null;
 
   // ── File selection ────────────────────────────────────────────────────────
   dropZone.addEventListener('click', () => fileInput.click());
@@ -226,7 +211,7 @@
     resetResults();
 
     const formData = new FormData();
-    selectedFiles.forEach(f => formData.append('images', f));
+    formData.append('image', selectedFile);
     const apiKey = getSavedKey();
     if (apiKey) formData.append('api_key', apiKey);
 
