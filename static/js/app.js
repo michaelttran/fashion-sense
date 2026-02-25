@@ -110,8 +110,7 @@
     hideError();
     resetResults();
     renderThumbnails();
-    analyzeBtn.disabled = false;
-    clearBtn.disabled   = false;
+    analyzeOutfit();
   }
 
   // ── Thumbnail rendering ───────────────────────────────────────────────────
