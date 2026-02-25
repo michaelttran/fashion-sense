@@ -95,12 +95,20 @@
     <section class="results-section hidden" id="resultsSection">
       <!-- Roast section -->
       <div class="roast-section hidden" id="roastSection">
+        <div class="roast-persona-picker">
+          <span class="roast-persona-label">Pick your critic</span>
+          <div class="roast-personas">
+            <button class="btn-persona active" data-persona="chris_rock">Chris Rock</button>
+            <button class="btn-persona" data-persona="trevor_noah">Trevor Noah</button>
+            <button class="btn-persona" data-persona="james_joyce">James Joyce</button>
+          </div>
+        </div>
         <button class="btn btn-roast" id="roastBtn">
           <span class="btn-text">Roast My Style 🔥</span>
           <span class="btn-loader btn-loader-roast hidden" aria-hidden="true"></span>
         </button>
         <div class="roast-card hidden" id="roastCard">
-          <span class="roast-label">The Verdict</span>
+          <span class="roast-label" id="roastLabel">The Verdict</span>
           <p id="roastText"></p>
         </div>
       </div>
