@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fashion Sense — Outfit Advisor</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">✦</span>
+        <span class="logo-text">Fashion<strong>Sense</strong></span>
+      </div>
+      <p class="tagline">Upload your outfit. Get styled.</p>
+    </div>
+  </header>
+
+  <main>
+    <!-- Upload section -->
+    <section class="upload-section" id="uploadSection">
+      <div
+        class="drop-zone"
+        id="dropZone"
+        role="button"
+        tabindex="0"
+        aria-label="Upload outfit photo"
+      >
+        <div class="drop-zone-inner" id="dropZoneInner">
+          <div class="drop-icon">📸</div>
+          <p class="drop-title">Drop your outfit photo here</p>
+          <p class="drop-sub">or click to browse</p>
+          <span class="drop-formats">JPG · PNG · WebP · GIF · up to 16 MB</span>
+        </div>
+        <img id="previewImg" class="preview-img hidden" alt="Outfit preview" />
+      </div>
+      <input type="file" id="fileInput" accept="image/*" hidden />
+
+      <div class="upload-actions" id="uploadActions">
+        <button class="btn btn-primary" id="analyzeBtn" disabled>
+          <span class="btn-text">Analyze Outfit</span>
+          <span class="btn-loader hidden" aria-hidden="true"></span>
+        </button>
+        <button class="btn btn-ghost" id="clearBtn" disabled>Clear</button>
+      </div>
+    </section>
+
+    <!-- Error banner -->
+    <div class="error-banner hidden" id="errorBanner" role="alert">
+      <span id="errorText"></span>
+      <button class="error-close" id="errorClose" aria-label="Dismiss">✕</button>
+    </div>
+
+    <!-- Results section -->
+    <section class="results-section hidden" id="resultsSection">
+      <div class="outfit-summary" id="outfitSummary"></div>
+      <h2 class="suggestions-heading">Suggested Pieces</h2>
+      <div class="cards-grid" id="cardsGrid"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Powered by <a href="https://www.anthropic.com" target="_blank" rel="noopener">Claude AI</a></p>
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
