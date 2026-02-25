@@ -345,5 +345,40 @@ def analyze_outfit():
     return jsonify(data)
 
 
+@app.route('/roast', methods=['POST'])
+def roast_outfit():
+    body = request.get_json(force=True) or {}
+
+    request_api_key = body.get('api_key', '').strip()
+    active_client = anthropic.Anthropic(api_key=request_api_key) if request_api_key else client
+    if not request_api_key and not _env_api_key:
+        return jsonify({'error': 'No API key configured. Add your Anthropic API key via the settings (⚙) button.'}), 401
+
+    outfit_description = body.get('outfit_description', '')
+    style              = body.get('style', '')
+    color_palette      = body.get('color_palette', '')
+    suggestions        = body.get('suggestions', [])
+    items = ', '.join(s.get('item', '') for s in suggestions[:6] if s.get('item'))
+
+    prompt = f"""You are a witty, razor-sharp fashion critic — like a brutally honest best friend who has impeccable taste. Roast this person's style in 3-4 punchy sentences. Be specific, clever, and merciless but never mean-spirited. Reference the actual details below.
+
+Outfit: {outfit_description}
+Style: {style}
+Color palette: {color_palette}
+Items they apparently need: {items}
+
+Deliver the roast directly — no preamble, no "here's your roast", just go straight in."""
+
+    try:
+        response = active_client.messages.create(
+            model='claude-opus-4-6',
+            max_tokens=512,
+            messages=[{'role': 'user', 'content': prompt}],
+        )
+        return jsonify({'roast': response.content[0].text.strip()})
+    except anthropic.APIError as e:
+        return jsonify({'error': f'API error: {str(e)}'}), 502
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
