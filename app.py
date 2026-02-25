@@ -6,13 +6,16 @@ from flask import Flask, render_template, request, jsonify
 import anthropic
 from dotenv import load_dotenv
 
+from PIL import Image
+
 try:
     import pillow_heif
-    from PIL import Image
     pillow_heif.register_heif_opener()
     HEIF_SUPPORTED = True
 except ImportError:
     HEIF_SUPPORTED = False
+
+MAX_IMAGE_PX = 1024  # longest edge sent to the API
 
 load_dotenv()
 
@@ -24,15 +27,6 @@ _env_api_key = os.environ.get('ANTHROPIC_API_KEY')
 client = anthropic.Anthropic(api_key=_env_api_key)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'heif'}
-MEDIA_TYPE_MAP = {
-    'jpg': 'image/jpeg',
-    'jpeg': 'image/jpeg',
-    'png': 'image/png',
-    'gif': 'image/gif',
-    'webp': 'image/webp',
-    'heic': 'image/jpeg',  # HEIC converted to JPEG before sending
-    'heif': 'image/jpeg',  # HEIF converted to JPEG before sending
-}
 
 
 def allowed_file(filename):
@@ -44,24 +38,22 @@ def get_ext(filename):
 
 
 def prepare_image(file):
-    """Read and base64-encode an image, converting HEIC/HEIF to JPEG first."""
+    """Read, resize to MAX_IMAGE_PX on the longest edge, and base64-encode as JPEG."""
     ext = get_ext(file.filename)
-    image_data = file.read()
+    if ext in ('heic', 'heif') and not HEIF_SUPPORTED:
+        raise ValueError(
+            'HEIC/HEIF support requires pillow-heif. Run: pip install pillow-heif'
+        )
 
-    if ext in ('heic', 'heif'):
-        if not HEIF_SUPPORTED:
-            raise ValueError(
-                'HEIC/HEIF support requires pillow-heif. Run: pip install pillow-heif'
-            )
-        img = Image.open(io.BytesIO(image_data))
-        buf = io.BytesIO()
-        img.convert('RGB').save(buf, format='JPEG', quality=90)
-        image_data = buf.getvalue()
-        media_type = 'image/jpeg'
-    else:
-        media_type = MEDIA_TYPE_MAP.get(ext, file.content_type or 'image/jpeg')
+    img = Image.open(io.BytesIO(file.read()))
 
-    return base64.standard_b64encode(image_data).decode('utf-8'), media_type
+    if max(img.size) > MAX_IMAGE_PX:
+        img.thumbnail((MAX_IMAGE_PX, MAX_IMAGE_PX), Image.LANCZOS)
+
+    buf = io.BytesIO()
+    img.convert('RGB').save(buf, format='JPEG', quality=85)
+
+    return base64.standard_b64encode(buf.getvalue()).decode('utf-8'), 'image/jpeg'
 
 
 def build_shopping_links(search_term):
