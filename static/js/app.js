@@ -66,7 +66,7 @@
   // Initialise badge on load
   updateBadge();
 
-  let selectedFile = null;
+  let selectedFiles = [];
 
   // ── File selection ────────────────────────────────────────────────────────
   dropZone.addEventListener('click', () => fileInput.click());
