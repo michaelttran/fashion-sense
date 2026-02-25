@@ -329,6 +329,7 @@
     hm:              'H&M',
     uniqlo:          'Uniqlo',
     revolve:         'Revolve',
+    soleretriever:   'Sole Retriever',
   };
 
   function renderCard(s) {
