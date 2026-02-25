@@ -16,6 +16,54 @@
   const btnText   = analyzeBtn.querySelector('.btn-text');
   const btnLoader = analyzeBtn.querySelector('.btn-loader');
 
+  // ── Roast ──────────────────────────────────────────────────────────────────
+  const roastSection = document.getElementById('roastSection');
+  const roastBtn     = document.getElementById('roastBtn');
+  const roastCard    = document.getElementById('roastCard');
+  const roastText    = document.getElementById('roastText');
+  const roastBtnText   = roastBtn.querySelector('.btn-text');
+  const roastBtnLoader = roastBtn.querySelector('.btn-loader-roast');
+
+  let lastAnalysisData = null;
+
+  roastBtn.addEventListener('click', async () => {
+    if (!lastAnalysisData) return;
+
+    roastBtn.disabled = true;
+    roastBtnText.textContent = 'Bracing for impact…';
+    roastBtnLoader.classList.remove('hidden');
+    roastCard.classList.add('hidden');
+
+    try {
+      const payload = {
+        outfit_description: lastAnalysisData.outfit_description || '',
+        style:              lastAnalysisData.style              || '',
+        color_palette:      lastAnalysisData.color_palette      || '',
+        suggestions:        lastAnalysisData.suggestions        || [],
+        api_key:            getSavedKey(),
+      };
+
+      const resp = await fetch('/roast', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+      });
+      const data = await resp.json();
+
+      roastText.textContent = resp.ok
+        ? data.roast
+        : (data.error || 'Could not generate roast. Try again.');
+      roastCard.classList.remove('hidden');
+    } catch {
+      roastText.textContent = 'Network error. Try again.';
+      roastCard.classList.remove('hidden');
+    } finally {
+      roastBtn.disabled = false;
+      roastBtnText.textContent = 'Roast Me Again 🔥';
+      roastBtnLoader.classList.add('hidden');
+    }
+  });
+
   // ── API key modal ─────────────────────────────────────────────────────────
   const settingsBtn  = document.getElementById('settingsBtn');
   const settingsBadge = document.getElementById('settingsBadge');
@@ -197,6 +245,9 @@
     resultsSection.classList.add('hidden');
     outfitSummary.innerHTML = '';
     cardsGrid.innerHTML = '';
+    lastAnalysisData = null;
+    roastSection.classList.add('hidden');
+    roastCard.classList.add('hidden');
   }
 
   // ── Analyze ───────────────────────────────────────────────────────────────
@@ -237,6 +288,10 @@
 
   // ── Render results ────────────────────────────────────────────────────────
   function renderResults(data) {
+    lastAnalysisData = data;
+    roastSection.classList.remove('hidden');
+    roastCard.classList.add('hidden');
+    roastBtnText.textContent = 'Roast My Style 🔥';
     const personRow = data.person_description
       ? `<div class="meta-item"><span class="label">Person Identified</span><span class="value">${esc(data.person_description)}</span></div>`
       : '';
