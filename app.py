@@ -2,7 +2,7 @@ import os
 import base64
 import json
 from flask import Flask, render_template, request, jsonify
-import openai
+import anthropic
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,9 +10,9 @@ load_dotenv()
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
-_env_api_key = os.environ.get('OPENAI_API_KEY')
+_env_api_key = os.environ.get('ANTHROPIC_API_KEY')
 # Global client used when no per-request key is provided
-client = openai.OpenAI(api_key=_env_api_key)
+client = anthropic.Anthropic(api_key=_env_api_key)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MEDIA_TYPE_MAP = {
@@ -86,30 +86,35 @@ def analyze_outfit():
     media_type = get_media_type(file.filename, file.content_type)
 
     request_api_key = request.form.get('api_key', '').strip()
-    active_client = openai.OpenAI(api_key=request_api_key) if request_api_key else client
+    active_client = anthropic.Anthropic(api_key=request_api_key) if request_api_key else client
     if not request_api_key and not _env_api_key:
-        return jsonify({'error': 'No API key configured. Add your OpenAI API key via the settings (⚙) button.'}), 401
-
-    data_url = f'data:{media_type};base64,{image_b64}'
+        return jsonify({'error': 'No API key configured. Add your Anthropic API key via the settings (⚙) button.'}), 401
 
     try:
-        response = active_client.chat.completions.create(
-            model='gpt-4o',
+        response = active_client.messages.create(
+            model='claude-opus-4-6',
             max_tokens=2048,
             messages=[
                 {
                     'role': 'user',
                     'content': [
-                        {'type': 'image_url', 'image_url': {'url': data_url}},
+                        {
+                            'type': 'image',
+                            'source': {
+                                'type': 'base64',
+                                'media_type': media_type,
+                                'data': image_b64,
+                            },
+                        },
                         {'type': 'text', 'text': ANALYSIS_PROMPT},
                     ],
                 }
             ],
         )
-    except openai.APIError as e:
+    except anthropic.APIError as e:
         return jsonify({'error': f'API error: {str(e)}'}), 502
 
-    raw = response.choices[0].message.content.strip()
+    raw = response.content[0].text.strip()
 
     # Strip optional markdown code fences
     if raw.startswith('```'):
