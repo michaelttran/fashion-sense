@@ -210,7 +210,7 @@
     resetResults();
 
     const formData = new FormData();
-    formData.append('image', selectedFile);
+    selectedFiles.forEach(f => formData.append('images', f));
     const apiKey = getSavedKey();
     if (apiKey) formData.append('api_key', apiKey);
 
