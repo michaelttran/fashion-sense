@@ -127,26 +127,82 @@ def build_shopping_links(search_term, gender='unknown'):
     }
 
 
+# How many bytes to read per response when scanning for "no results" text.
+# 100 KB captures the initial rendered HTML on server-side-rendered retailer
+# pages (Amazon, Nordstrom, J.Crew, Banana Republic, Madewell, H&M) without
+# downloading full pages.
+_READ_LIMIT = 100_000
+
+# Lowercase byte patterns that indicate a retailer search returned zero results.
+# Matched against the first _READ_LIMIT bytes of the response body (lowercased).
+_NO_RESULTS_PATTERNS = (
+    b'no results for',
+    b'no results found',
+    b'0 results found',
+    b'0 results for',
+    b'no products found',
+    b'did not match any products',   # Amazon
+    b'no items found',
+    b'search returned no results',
+    b'your search returned 0',
+    b"we couldn't find anything",    # ASOS
+    b'no matches found',
+    b'showing 0 results',
+    b'found 0 products',
+    b'"search-no-results"',          # common CSS hook used by many retailers
+    b"'search-no-results'",
+    b'class="no-results"',
+    b'class="noresults"',
+    b'id="no-results"',
+    b'id="noresults"',
+)
+
+
 def _check_url(pair):
-    """Return (retailer_key, is_reachable) for a single URL."""
+    """Return (retailer_key, has_results).
+
+    Makes a streaming GET request, reads the first _READ_LIMIT bytes of the
+    response body, and returns False if:
+      - the HTTP status is 4xx / 5xx, or
+      - the body contains a recognised "no results" indicator.
+    """
     key, url = pair
-    headers = {'User-Agent': _BROWSER_UA}
+    headers = {
+        'User-Agent': _BROWSER_UA,
+        'Accept-Language': 'en-US,en;q=0.9',
+    }
     try:
-        r = http_requests.head(url, headers=headers, allow_redirects=True, timeout=5)
-        if r.status_code == 405:
-            # HEAD not supported; stream just the response headers via GET
-            r = http_requests.get(url, headers=headers, allow_redirects=True,
-                                   timeout=5, stream=True)
-        return key, r.status_code < 400
+        r = http_requests.get(
+            url, headers=headers, allow_redirects=True, timeout=8, stream=True
+        )
+        if r.status_code >= 400:
+            return key, False
+
+        chunks = []
+        total = 0
+        for chunk in r.iter_content(chunk_size=8192):
+            chunks.append(chunk)
+            total += len(chunk)
+            if total >= _READ_LIMIT:
+                break
+        r.close()
+
+        body = b''.join(chunks).lower()
+        for pattern in _NO_RESULTS_PATTERNS:
+            if pattern in body:
+                return key, False
+
+        return key, True
     except Exception:
         return key, False
 
 
 def validate_shopping_links(links):
-    """Return a filtered dict containing only URLs that respond without an HTTP error.
+    """Return a filtered dict of links that both respond successfully and show results.
 
-    All links are checked concurrently. Any retailer URL that times out, returns
-    a 4xx/5xx status, or raises a network error is dropped from the result.
+    All links are checked concurrently. A link is dropped if it times out,
+    returns a 4xx/5xx status, raises a network error, or its response body
+    contains a recognised "no results" indicator.
     """
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(links)) as ex:
         results = dict(ex.map(_check_url, links.items()))
