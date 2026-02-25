@@ -401,6 +401,25 @@ main {
 
 /* ─── Cards ──────────────────────────────────────────────────────────────── */
 .cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2.25rem;
+}
+
+.category-section { display: flex; flex-direction: column; }
+
+.category-heading {
+  font-size: .78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--text-muted);
+  margin-bottom: .9rem;
+  padding-bottom: .45rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.cards-row {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 1.1rem;
@@ -528,5 +547,5 @@ footer {
 @media (max-width: 540px) {
   .upload-actions { flex-direction: column; }
   .btn { justify-content: center; }
-  .cards-grid { grid-template-columns: 1fr; }
+  .cards-row { grid-template-columns: 1fr; }
 }
