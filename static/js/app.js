@@ -210,7 +210,8 @@
     resetResults();
 
     const formData = new FormData();
-    selectedFiles.forEach(f => formData.append('images', f));
+    const blobs = await Promise.all(selectedFiles.map(resizeImage));
+    blobs.forEach(b => formData.append('images', b));
     const apiKey = getSavedKey();
     if (apiKey) formData.append('api_key', apiKey);
 
@@ -223,7 +224,8 @@
         return;
       }
       renderResults(data);
-    } catch {
+    } catch (err) {
+      console.error('analyzeOutfit error:', err);
       showError('Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
@@ -319,5 +321,33 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+  }
+
+  function isHeic(file) {
+    return /\.(heic|heif)$/i.test(file.name);
+  }
+
+  function isAllowedFile(file) {
+    return /\.(jpe?g|png|gif|webp|heic|heif)$/i.test(file.name);
+  }
+
+  async function resizeImage(file) {
+    if (isHeic(file)) return file; // let backend handle HEIC
+    return new Promise(resolve => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const max = Math.max(img.width, img.height);
+        const scale = max > 1024 ? 1024 / max : 1;
+        const canvas = document.createElement('canvas');
+        canvas.width  = Math.round(img.width  * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(blob => resolve(blob ?? file), 'image/jpeg', 0.85);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
   }
 })();
