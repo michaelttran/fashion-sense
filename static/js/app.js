@@ -26,13 +26,14 @@
   const roastBtnLoader = roastBtn.querySelector('.btn-loader-roast');
 
   const PERSONA_LABELS = {
-    chris_rock:  'Chris Rock',
-    trevor_noah: 'Trevor Noah',
-    james_joyce: 'James Joyce',
+    trevor_wallace: 'Trevor Wallace',
+    chris_rock:     'Chris Rock',
+    trevor_noah:    'Trevor Noah',
+    james_joyce:    'James Joyce',
   };
 
   let lastAnalysisData = null;
-  let selectedPersona  = 'chris_rock';
+  let selectedPersona  = 'trevor_wallace';
 
   // Persona toggle
   roastSection.querySelectorAll('.btn-persona').forEach(btn => {
@@ -268,9 +269,9 @@
     roastSection.classList.add('hidden');
     roastCard.classList.add('hidden');
     // Reset persona picker to default
-    selectedPersona = 'chris_rock';
+    selectedPersona = 'trevor_wallace';
     roastSection.querySelectorAll('.btn-persona').forEach(b => {
-      b.classList.toggle('active', b.dataset.persona === 'chris_rock');
+      b.classList.toggle('active', b.dataset.persona === 'trevor_wallace');
     });
   }
 
