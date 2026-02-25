@@ -310,7 +310,25 @@
     if (!suggestions.length) {
       cardsGrid.innerHTML = '<p style="color:var(--text-muted)">No suggestions returned.</p>';
     } else {
-      cardsGrid.innerHTML = suggestions.map(renderCard).join('');
+      const CATEGORY_ORDER = ['tops', 'bottoms', 'shoes', 'outerwear', 'accessories', 'bags'];
+
+      // Group suggestions by category, preserving defined order then any extras
+      const groups = {};
+      for (const s of suggestions) {
+        const cat = (s.category || 'other').toLowerCase();
+        (groups[cat] = groups[cat] || []).push(s);
+      }
+      const orderedCats = [
+        ...CATEGORY_ORDER.filter(c => groups[c]),
+        ...Object.keys(groups).filter(c => !CATEGORY_ORDER.includes(c)),
+      ];
+
+      cardsGrid.innerHTML = orderedCats.map(cat => `
+        <div class="category-section">
+          <h3 class="category-heading">${esc(cat.charAt(0).toUpperCase() + cat.slice(1))}</h3>
+          <div class="cards-row">${groups[cat].map(renderCard).join('')}</div>
+        </div>
+      `).join('');
     }
 
     resultsSection.classList.remove('hidden');
@@ -346,7 +364,6 @@
 
     return `
       <div class="card">
-        ${s.category ? `<span class="card-category">${esc(s.category)}</span>` : ''}
         <h3 class="card-title">${esc(s.item || '')}</h3>
         <p class="card-desc">${esc(s.description || '')}</p>
         <div class="card-price">${priceRange} <span>est.</span></div>
