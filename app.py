@@ -65,8 +65,11 @@ _BROWSER_UA = (
 )
 
 
-def build_shopping_links(search_term, gender='unknown'):
-    """Build retailer search URLs filtered to the given gender ('male'/'female'/'unknown')."""
+def build_shopping_links(search_term, gender='unknown', category=''):
+    """Build retailer search URLs filtered to the given gender ('male'/'female'/'unknown').
+
+    Soleretriever is included only when category is 'shoes'.
+    """
     ep  = search_term.replace(' ', '+')    # plus-encoded (Amazon, Nordstrom)
     pct = search_term.replace(' ', '%20')  # percent-encoded (most others)
 
@@ -113,7 +116,7 @@ def build_shopping_links(search_term, gender='unknown'):
         else f'https://www.revolve.com/search/?q={pct}'
     )
 
-    return {
+    links = {
         'amazon':          f'https://www.amazon.com/s?k={ep}{amz_dept}',
         'nordstrom':       f'https://www.nordstrom.com/sr?origin=keywordsearch&keyword={ep}{nord_dept}',
         'j_crew':          f'https://www.jcrew.com/r/search?q={pct}{jcrew_cat}',
@@ -125,6 +128,12 @@ def build_shopping_links(search_term, gender='unknown'):
         'uniqlo':          f'https://www.uniqlo.com/us/en/search?q={pct}{uniqlo_gender}',
         'revolve':         revolve_url,
     }
+
+    # Soleretriever tracks sneaker release dates — only relevant for shoe suggestions
+    if category.lower() == 'shoes':
+        links['soleretriever'] = f'https://www.soleretriever.com/sneaker-release-dates?search={pct}'
+
+    return links
 
 
 # How many bytes to read per response when scanning for "no results" text.
@@ -338,8 +347,9 @@ def analyze_outfit():
     # Build gender-specific links for every suggestion, then validate each set
     # concurrently so empty / broken retailer URLs are excluded.
     for suggestion in data.get('suggestions', []):
-        term = suggestion.get('search_term') or suggestion.get('item', '')
-        raw_links = build_shopping_links(term, gender)
+        term     = suggestion.get('search_term') or suggestion.get('item', '')
+        category = suggestion.get('category', '')
+        raw_links = build_shopping_links(term, gender, category)
         suggestion['links'] = validate_shopping_links(raw_links)
 
     return jsonify(data)
