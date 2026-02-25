@@ -2,8 +2,10 @@ import os
 import base64
 import json
 import io
+import concurrent.futures
 from flask import Flask, render_template, request, jsonify
 import anthropic
+import requests as http_requests
 from dotenv import load_dotenv
 
 from PIL import Image
@@ -56,21 +58,99 @@ def prepare_image(file):
     return base64.standard_b64encode(buf.getvalue()).decode('utf-8'), 'image/jpeg'
 
 
-def build_shopping_links(search_term):
-    encoded_plus = search_term.replace(' ', '+')
-    encoded_pct = search_term.replace(' ', '%20')
+_BROWSER_UA = (
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+    'AppleWebKit/537.36 (KHTML, like Gecko) '
+    'Chrome/120.0.0.0 Safari/537.36'
+)
+
+
+def build_shopping_links(search_term, gender='unknown'):
+    """Build retailer search URLs filtered to the given gender ('male'/'female'/'unknown')."""
+    ep  = search_term.replace(' ', '+')    # plus-encoded (Amazon, Nordstrom)
+    pct = search_term.replace(' ', '%20')  # percent-encoded (most others)
+
+    is_male   = gender == 'male'
+    is_female = gender == 'female'
+
+    # Amazon – Men's (node 1040658) or Women's (node 7141123011) clothing department
+    amz_dept = '&rh=n%3A1040658' if is_male else ('&rh=n%3A7141123011' if is_female else '')
+
+    # Nordstrom – department filter
+    nord_dept = '&department=Mens' if is_male else ('&department=Womens' if is_female else '')
+
+    # J.Crew – category filter
+    jcrew_cat = '&c=mens' if is_male else ('&c=womens' if is_female else '')
+
+    # Banana Republic – division filter
+    br_div = '&division=mens' if is_male else ('&division=womens' if is_female else '')
+
+    # Madewell – gender preference filter
+    madewell_gender = '&prefn1=gender&prefv1=Men' if is_male else (
+        '&prefn1=gender&prefv1=Women' if is_female else ''
+    )
+
+    # ASOS – gender lives in the URL path
+    if is_male:
+        asos_url = f'https://www.asos.com/men/search/?q={pct}'
+    elif is_female:
+        asos_url = f'https://www.asos.com/women/search/?q={pct}'
+    else:
+        asos_url = f'https://www.asos.com/search/?q={pct}'
+
+    # Zara – section query param
+    zara_section = '&section=man' if is_male else ('&section=woman' if is_female else '')
+
+    # H&M – department filter
+    hm_dept = '&department=Men' if is_male else ('&department=Ladies' if is_female else '')
+
+    # Uniqlo – gender filter
+    uniqlo_gender = '&gender=men' if is_male else ('&gender=women' if is_female else '')
+
+    # Revolve – men's has a separate search path
+    revolve_url = (
+        f'https://www.revolve.com/mens-search/?q={pct}' if is_male
+        else f'https://www.revolve.com/search/?q={pct}'
+    )
+
     return {
-        'amazon': f'https://www.amazon.com/s?k={encoded_plus}',
-        'nordstrom': f'https://www.nordstrom.com/sr?origin=keywordsearch&keyword={encoded_plus}',
-        'j_crew': f'https://www.jcrew.com/r/search?q={encoded_pct}',
-        'banana_republic': f'https://bananarepublic.gap.com/browse/search.do?searchText={encoded_pct}',
-        'madewell': f'https://www.madewell.com/search?q={encoded_pct}',
-        'asos': f'https://www.asos.com/search/?q={encoded_pct}',
-        'zara': f'https://www.zara.com/us/en/search?searchTerm={encoded_pct}',
-        'hm': f'https://www2.hm.com/en_us/search-results.html?q={encoded_pct}',
-        'uniqlo': f'https://www.uniqlo.com/us/en/search?q={encoded_pct}',
-        'revolve': f'https://www.revolve.com/search/?q={encoded_pct}',
+        'amazon':          f'https://www.amazon.com/s?k={ep}{amz_dept}',
+        'nordstrom':       f'https://www.nordstrom.com/sr?origin=keywordsearch&keyword={ep}{nord_dept}',
+        'j_crew':          f'https://www.jcrew.com/r/search?q={pct}{jcrew_cat}',
+        'banana_republic': f'https://bananarepublic.gap.com/browse/search.do?searchText={pct}{br_div}',
+        'madewell':        f'https://www.madewell.com/search?q={pct}{madewell_gender}',
+        'asos':            asos_url,
+        'zara':            f'https://www.zara.com/us/en/search?searchTerm={pct}{zara_section}',
+        'hm':              f'https://www2.hm.com/en_us/search-results.html?q={pct}{hm_dept}',
+        'uniqlo':          f'https://www.uniqlo.com/us/en/search?q={pct}{uniqlo_gender}',
+        'revolve':         revolve_url,
     }
+
+
+def _check_url(pair):
+    """Return (retailer_key, is_reachable) for a single URL."""
+    key, url = pair
+    headers = {'User-Agent': _BROWSER_UA}
+    try:
+        r = http_requests.head(url, headers=headers, allow_redirects=True, timeout=5)
+        if r.status_code == 405:
+            # HEAD not supported; stream just the response headers via GET
+            r = http_requests.get(url, headers=headers, allow_redirects=True,
+                                   timeout=5, stream=True)
+        return key, r.status_code < 400
+    except Exception:
+        return key, False
+
+
+def validate_shopping_links(links):
+    """Return a filtered dict containing only URLs that respond without an HTTP error.
+
+    All links are checked concurrently. Any retailer URL that times out, returns
+    a 4xx/5xx status, or raises a network error is dropped from the result.
+    """
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(links)) as ex:
+        results = dict(ex.map(_check_url, links.items()))
+    return {k: v for k, v in links.items() if results.get(k, False)}
 
 
 BRAND_LIST = (
@@ -85,6 +165,7 @@ ANALYSIS_PROMPT_SINGLE = f"""Analyze this outfit and provide fashion suggestions
   "outfit_description": "Brief description of what you see in the outfit",
   "style": "Overall style label (e.g. casual, smart-casual, streetwear, formal, bohemian)",
   "color_palette": "Description of the color palette being used",
+  "gender": "male or female or unknown — inferred from the person's apparent gender presentation",
   "suggestions": [
     {{
       "item": "Specific item name including a real brand (e.g. 'J.Crew Slim-Fit Chino Pant' or 'Banana Republic Heritage Oxford Shirt')",
@@ -97,7 +178,7 @@ ANALYSIS_PROMPT_SINGLE = f"""Analyze this outfit and provide fashion suggestions
   ]
 }}
 
-Provide exactly 10 suggestions that would upgrade or complement this outfit. Name real brands such as: {BRAND_LIST}. Cover a range of categories. Return ONLY the JSON object, no markdown, no explanation."""
+Provide exactly 10 suggestions that would upgrade or complement this outfit. All suggestions must be appropriate for the identified gender. Name real brands such as: {BRAND_LIST}. Cover a range of categories. Return ONLY the JSON object, no markdown, no explanation."""
 
 ANALYSIS_PROMPT_MULTI = f"""You are given multiple photos. Identify the ONE person who appears consistently across ALL of the photos (they may be wearing different outfits). Analyze their overall personal style.
 
@@ -107,6 +188,7 @@ Return ONLY valid JSON with this exact structure:
   "outfit_description": "Summary of the outfits/styles observed across the photos",
   "style": "Overall style label that captures their aesthetic (e.g. casual, smart-casual, streetwear, formal, bohemian)",
   "color_palette": "Dominant color palette seen across their outfits",
+  "gender": "male or female or unknown — inferred from the person's apparent gender presentation across the photos",
   "suggestions": [
     {{
       "item": "Specific item name including a real brand (e.g. 'J.Crew Slim-Fit Chino Pant' or 'Banana Republic Heritage Oxford Shirt')",
@@ -119,7 +201,7 @@ Return ONLY valid JSON with this exact structure:
   ]
 }}
 
-Provide exactly 10 suggestions tailored to the person's consistent style across all photos. Name real brands such as: {BRAND_LIST}. Cover a range of categories. Return ONLY the JSON object, no markdown, no explanation."""
+Provide exactly 10 suggestions tailored to the person's consistent style across all photos. All suggestions must be appropriate for the identified gender. Name real brands such as: {BRAND_LIST}. Cover a range of categories. Return ONLY the JSON object, no markdown, no explanation."""
 
 
 @app.route('/')
@@ -195,9 +277,14 @@ def analyze_outfit():
     except (json.JSONDecodeError, ValueError):
         return jsonify({'error': 'Could not parse suggestions from the model response.'}), 500
 
+    gender = data.get('gender', 'unknown')
+
+    # Build gender-specific links for every suggestion, then validate each set
+    # concurrently so empty / broken retailer URLs are excluded.
     for suggestion in data.get('suggestions', []):
         term = suggestion.get('search_term') or suggestion.get('item', '')
-        suggestion['links'] = build_shopping_links(term)
+        raw_links = build_shopping_links(term, gender)
+        suggestion['links'] = validate_shopping_links(raw_links)
 
     return jsonify(data)
 
