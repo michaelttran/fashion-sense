@@ -14,8 +14,38 @@
         <span class="logo-text">Fashion<strong>Sense</strong></span>
       </div>
       <p class="tagline">Upload your outfit. Get styled.</p>
+      <button class="btn-settings" id="settingsBtn" aria-label="API key settings">
+        <span class="settings-icon">⚙</span>
+        <span class="settings-badge hidden" id="settingsBadge" title="API key saved"></span>
+      </button>
     </div>
   </header>
+
+  <!-- API key modal -->
+  <div class="modal-overlay hidden" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalTitle">Anthropic API Key</h2>
+        <button class="modal-close" id="modalClose" aria-label="Close">✕</button>
+      </div>
+      <p class="modal-desc">Your key is stored only in your browser and sent directly to this server for each request. It is never logged or persisted server-side.</p>
+      <div class="modal-field">
+        <label for="apiKeyInput" class="modal-label">API Key</label>
+        <input
+          type="password"
+          id="apiKeyInput"
+          class="modal-input"
+          placeholder="sk-ant-..."
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="saveKeyBtn">Save Key</button>
+        <button class="btn btn-ghost" id="clearKeyBtn">Clear</button>
+      </div>
+    </div>
+  </div>
 
   <main>
     <!-- Upload section -->
