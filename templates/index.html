@@ -55,17 +55,26 @@
         id="dropZone"
         role="button"
         tabindex="0"
-        aria-label="Upload outfit photo"
+        aria-label="Upload outfit photos"
       >
+        <!-- Empty state -->
         <div class="drop-zone-inner" id="dropZoneInner">
           <div class="drop-icon">📸</div>
-          <p class="drop-title">Drop your outfit photo here</p>
-          <p class="drop-sub">or click to browse</p>
-          <span class="drop-formats">JPG · PNG · WebP · GIF · up to 16 MB</span>
+          <p class="drop-title">Drop your outfit photos here</p>
+          <p class="drop-sub">or click to browse &nbsp;·&nbsp; select multiple photos</p>
+          <span class="drop-formats">JPG · PNG · WebP · GIF · HEIC · up to 16 MB each</span>
         </div>
-        <img id="previewImg" class="preview-img hidden" alt="Outfit preview" />
+        <!-- Compact "add more" state (shown when files are loaded) -->
+        <div class="drop-zone-compact hidden" id="dropZoneCompact">
+          <span class="drop-compact-icon">+</span>
+          <span>Add more photos</span>
+        </div>
       </div>
-      <input type="file" id="fileInput" accept="image/*" hidden />
+
+      <!-- Thumbnails strip (shown when files are selected) -->
+      <div class="thumbnails-strip hidden" id="thumbnailStrip"></div>
+
+      <input type="file" id="fileInput" accept="image/*,.heic,.heif" multiple hidden />
 
       <div class="upload-actions" id="uploadActions">
         <button class="btn btn-primary" id="analyzeBtn" disabled>

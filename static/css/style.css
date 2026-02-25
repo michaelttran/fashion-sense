@@ -43,6 +43,7 @@ header {
   align-items: center;
   gap: 1.5rem;
   flex-wrap: wrap;
+  justify-content: flex-start;
 }
 .logo {
   display: flex;
@@ -159,7 +160,7 @@ main {
   transition: border-color var(--transition), background var(--transition);
   position: relative;
   overflow: hidden;
-  min-height: 240px;
+  min-height: 160px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -180,6 +181,7 @@ main {
   align-items: center;
   gap: .5rem;
 }
+.drop-zone-inner.hidden { display: none; }
 .drop-icon { font-size: 2.5rem; }
 .drop-title { font-size: 1.1rem; font-weight: 600; }
 .drop-sub { color: var(--text-muted); font-size: .9rem; }
@@ -192,14 +194,104 @@ main {
   margin-top: .4rem;
 }
 
-.preview-img {
+/* ─── Compact drop zone (shown when files are loaded) ────────────────────── */
+.drop-zone-compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  color: var(--text-muted);
+  font-size: .9rem;
+  font-weight: 600;
+  pointer-events: none;
+  padding: 1.25rem;
+}
+.drop-zone-compact.hidden { display: none; }
+.drop-compact-icon {
+  font-size: 1.4rem;
+  color: var(--accent);
+  line-height: 1;
+}
+
+/* ─── Thumbnails strip ───────────────────────────────────────────────────── */
+.thumbnails-strip {
+  margin-top: .9rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+  align-items: flex-start;
+}
+.thumbnails-strip.hidden { display: none; }
+
+.thumb-count {
   width: 100%;
-  max-height: 420px;
-  object-fit: contain;
-  border-radius: var(--radius);
+  font-size: .78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--accent);
+  margin-bottom: .1rem;
+}
+
+.thumb-item {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   display: block;
 }
-.preview-img.hidden { display: none; }
+
+.thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .3rem;
+  background: var(--surface2);
+  padding: .4rem;
+}
+.thumb-heic-icon { font-size: 1.6rem; line-height: 1; }
+.thumb-filename {
+  font-size: .6rem;
+  color: var(--text-muted);
+  word-break: break-all;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.thumb-remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 18px;
+  height: 18px;
+  background: rgba(0,0,0,.7);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  font-size: .65rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background var(--transition);
+  z-index: 1;
+}
+.thumb-remove:hover { background: var(--error); }
 
 /* ─── Actions ────────────────────────────────────────────────────────────── */
 .upload-actions {
