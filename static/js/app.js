@@ -15,6 +15,56 @@
   const btnText   = analyzeBtn.querySelector('.btn-text');
   const btnLoader = analyzeBtn.querySelector('.btn-loader');
 
+  // ── API key modal ─────────────────────────────────────────────────────────
+  const settingsBtn  = document.getElementById('settingsBtn');
+  const settingsBadge = document.getElementById('settingsBadge');
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalClose   = document.getElementById('modalClose');
+  const apiKeyInput  = document.getElementById('apiKeyInput');
+  const saveKeyBtn   = document.getElementById('saveKeyBtn');
+  const clearKeyBtn  = document.getElementById('clearKeyBtn');
+
+  const LS_KEY = 'fashionsense_api_key';
+
+  function getSavedKey() { return localStorage.getItem(LS_KEY) || ''; }
+
+  function updateBadge() {
+    settingsBadge.classList.toggle('hidden', !getSavedKey());
+  }
+
+  function openModal() {
+    apiKeyInput.value = getSavedKey();
+    modalOverlay.classList.remove('hidden');
+    apiKeyInput.focus();
+  }
+
+  function closeModal() { modalOverlay.classList.add('hidden'); }
+
+  settingsBtn.addEventListener('click', openModal);
+  modalClose.addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  saveKeyBtn.addEventListener('click', () => {
+    const key = apiKeyInput.value.trim();
+    if (key) {
+      localStorage.setItem(LS_KEY, key);
+    } else {
+      localStorage.removeItem(LS_KEY);
+    }
+    updateBadge();
+    closeModal();
+  });
+
+  clearKeyBtn.addEventListener('click', () => {
+    localStorage.removeItem(LS_KEY);
+    apiKeyInput.value = '';
+    updateBadge();
+  });
+
+  // Initialise badge on load
+  updateBadge();
+
   let selectedFile = null;
 
   // ── File selection ────────────────────────────────────────────────────────
@@ -95,6 +145,8 @@
 
     const formData = new FormData();
     formData.append('image', selectedFile);
+    const apiKey = getSavedKey();
+    if (apiKey) formData.append('api_key', apiKey);
 
     try {
       const resp = await fetch('/analyze', { method: 'POST', body: formData });

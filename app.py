@@ -10,7 +10,9 @@ load_dotenv()
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
-client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
+_env_api_key = os.environ.get('ANTHROPIC_API_KEY')
+# Global client used when no per-request key is provided
+client = anthropic.Anthropic(api_key=_env_api_key)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MEDIA_TYPE_MAP = {
@@ -83,8 +85,13 @@ def analyze_outfit():
     image_b64 = base64.standard_b64encode(image_data).decode('utf-8')
     media_type = get_media_type(file.filename, file.content_type)
 
+    request_api_key = request.form.get('api_key', '').strip()
+    active_client = anthropic.Anthropic(api_key=request_api_key) if request_api_key else client
+    if not request_api_key and not _env_api_key:
+        return jsonify({'error': 'No API key configured. Add your Anthropic API key via the settings (⚙) button.'}), 401
+
     try:
-        response = client.messages.create(
+        response = active_client.messages.create(
             model='claude-opus-4-6',
             max_tokens=2048,
             messages=[
