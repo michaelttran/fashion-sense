@@ -520,6 +520,49 @@ main {
 }
 .roast-card.hidden { display: none; }
 
+.roast-persona-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .6rem;
+}
+
+.roast-persona-label {
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.roast-personas {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn-persona {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: .85rem;
+  font-weight: 600;
+  padding: .4rem 1rem;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.btn-persona:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+.btn-persona.active {
+  background: rgba(224,92,92,.12);
+  border-color: rgba(224,92,92,.5);
+  color: #f07070;
+}
+
 .roast-label {
   font-size: .72rem;
   text-transform: uppercase;

@@ -370,14 +370,35 @@ def roast_outfit():
     suggestions        = body.get('suggestions', [])
     items = ', '.join(s.get('item', '') for s in suggestions[:6] if s.get('item'))
 
-    prompt = f"""You are a witty, razor-sharp fashion critic — like a brutally honest best friend who has impeccable taste. Roast this person's style in 3-4 punchy sentences. Be specific, clever, and merciless but never mean-spirited. Reference the actual details below.
+    persona_key = body.get('personality', 'chris_rock')
+    persona_instructions = {
+        'chris_rock': (
+            "You are roasting this person's fashion in the style of Chris Rock: rapid-fire, "
+            "incredulous, building to an absurd punchline. Short declarative sentences. "
+            "Lean into the 'I love fashion, but...' tension. Loud energy on the page."
+        ),
+        'trevor_noah': (
+            "You are roasting this person's fashion in the style of Trevor Noah: charming and "
+            "measured on the surface, devastating underneath. Build observations with witty "
+            "analogies and cross-cultural comparisons before landing the punchline. "
+            "Sound delightful even while being ruthless."
+        ),
+        'james_joyce': (
+            "You are roasting this person's fashion in the dense literary style of James Joyce. "
+            "Write in stream-of-consciousness with run-on clauses, unexpected word coinages, "
+            "classical allusions, and interior monologue. Think Ulysses crashing a fashion week. "
+            "Flowery, labyrinthine, and utterly savage."
+        ),
+    }.get(persona_key, '')
+
+    prompt = f"""{persona_instructions}
+
+Roast the outfit described below in 3-4 sentences. Be specific, reference the actual details, and deliver the roast directly — no preamble, no "here's your roast".
 
 Outfit: {outfit_description}
 Style: {style}
 Color palette: {color_palette}
-Items they apparently need: {items}
-
-Deliver the roast directly — no preamble, no "here's your roast", just go straight in."""
+Items they apparently need: {items}"""
 
     try:
         response = active_client.messages.create(

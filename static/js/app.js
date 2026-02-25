@@ -20,11 +20,28 @@
   const roastSection = document.getElementById('roastSection');
   const roastBtn     = document.getElementById('roastBtn');
   const roastCard    = document.getElementById('roastCard');
+  const roastLabel   = document.getElementById('roastLabel');
   const roastText    = document.getElementById('roastText');
   const roastBtnText   = roastBtn.querySelector('.btn-text');
   const roastBtnLoader = roastBtn.querySelector('.btn-loader-roast');
 
+  const PERSONA_LABELS = {
+    chris_rock:  'Chris Rock',
+    trevor_noah: 'Trevor Noah',
+    james_joyce: 'James Joyce',
+  };
+
   let lastAnalysisData = null;
+  let selectedPersona  = 'chris_rock';
+
+  // Persona toggle
+  roastSection.querySelectorAll('.btn-persona').forEach(btn => {
+    btn.addEventListener('click', () => {
+      roastSection.querySelectorAll('.btn-persona').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedPersona = btn.dataset.persona;
+    });
+  });
 
   roastBtn.addEventListener('click', async () => {
     if (!lastAnalysisData) return;
@@ -40,6 +57,7 @@
         style:              lastAnalysisData.style              || '',
         color_palette:      lastAnalysisData.color_palette      || '',
         suggestions:        lastAnalysisData.suggestions        || [],
+        personality:        selectedPersona,
         api_key:            getSavedKey(),
       };
 
@@ -50,6 +68,7 @@
       });
       const data = await resp.json();
 
+      roastLabel.textContent = `The Verdict — ${PERSONA_LABELS[selectedPersona] || selectedPersona}`;
       roastText.textContent = resp.ok
         ? data.roast
         : (data.error || 'Could not generate roast. Try again.');
@@ -248,6 +267,11 @@
     lastAnalysisData = null;
     roastSection.classList.add('hidden');
     roastCard.classList.add('hidden');
+    // Reset persona picker to default
+    selectedPersona = 'chris_rock';
+    roastSection.querySelectorAll('.btn-persona').forEach(b => {
+      b.classList.toggle('active', b.dataset.persona === 'chris_rock');
+    });
   }
 
   // ── Analyze ───────────────────────────────────────────────────────────────
