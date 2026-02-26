@@ -117,7 +117,7 @@ def build_shopping_links(search_term, gender='unknown', category=''):
     )
 
     links = {
-        'amazon':          f'https://www.amazon.com/s?k={ep}{amz_dept}',
+        'amazon':          f'https://www.amazon.com/s?k={ep}{amz_dept}&tag=mt0074-20',
         'nordstrom':       f'https://www.nordstrom.com/sr?origin=keywordsearch&keyword={ep}{nord_dept}',
         'j_crew':          f'https://www.jcrew.com/r/search?q={pct}{jcrew_cat}',
         'banana_republic': f'https://bananarepublic.gap.com/browse/search.do?searchText={pct}{br_div}',
@@ -182,7 +182,7 @@ def _check_url(pair):
     }
     try:
         r = http_requests.get(
-            url, headers=headers, allow_redirects=True, timeout=8, stream=True
+            url, headers=headers, allow_redirects=True, timeout=4, stream=True
         )
         if r.status_code >= 400:
             return key, False
@@ -342,15 +342,43 @@ def analyze_outfit():
     except (json.JSONDecodeError, ValueError):
         return jsonify({'error': 'Could not parse suggestions from the model response.'}), 500
 
-    gender = data.get('gender', 'unknown')
+    gender      = data.get('gender', 'unknown')
+    suggestions = data.get('suggestions', [])
 
-    # Build gender-specific links for every suggestion, then validate each set
-    # concurrently so empty / broken retailer URLs are excluded.
-    for suggestion in data.get('suggestions', []):
-        term     = suggestion.get('search_term') or suggestion.get('item', '')
-        category = suggestion.get('category', '')
-        raw_links = build_shopping_links(term, gender, category)
-        suggestion['links'] = validate_shopping_links(raw_links)
+    # Build all raw link dicts up front.
+    all_raw_links = [
+        build_shopping_links(
+            s.get('search_term') or s.get('item', ''),
+            gender,
+            s.get('category', ''),
+        )
+        for s in suggestions
+    ]
+
+    # Flatten every (suggestion_index, retailer_key, url) triple into one list
+    # and check them all in a single thread pool instead of 10 serial pools.
+    # This turns O(n_suggestions * max_retailer_latency) into O(max_retailer_latency).
+    flat = [
+        (idx, key, url)
+        for idx, links in enumerate(all_raw_links)
+        for key, url in links.items()
+    ]
+
+    def _check_flat(triple):
+        idx, key, url = triple
+        _, has_results = _check_url((key, url))
+        return idx, key, has_results
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(flat))) as ex:
+        flat_results = list(ex.map(_check_flat, flat))
+
+    validated = [{} for _ in suggestions]
+    for idx, key, has_results in flat_results:
+        if has_results:
+            validated[idx][key] = all_raw_links[idx][key]
+
+    for suggestion, links in zip(suggestions, validated):
+        suggestion['links'] = links
 
     return jsonify(data)
 
