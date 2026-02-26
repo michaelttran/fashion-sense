@@ -117,7 +117,7 @@ def build_shopping_links(search_term, gender='unknown', category=''):
     )
 
     links = {
-        'amazon':          f'https://www.amazon.com/s?k={ep}{amz_dept}',
+        'amazon':          f'https://www.amazon.com/s?k={ep}{amz_dept}&tag=mt0074-20',
         'nordstrom':       f'https://www.nordstrom.com/sr?origin=keywordsearch&keyword={ep}{nord_dept}',
         'j_crew':          f'https://www.jcrew.com/r/search?q={pct}{jcrew_cat}',
         'banana_republic': f'https://bananarepublic.gap.com/browse/search.do?searchText={pct}{br_div}',
