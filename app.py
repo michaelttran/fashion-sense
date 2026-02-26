@@ -174,8 +174,15 @@ def _check_url(pair):
     response body, and returns False if:
       - the HTTP status is 4xx / 5xx, or
       - the body contains a recognised "no results" indicator.
+
+    Some retailers (e.g. Amazon) block server-side requests with CAPTCHAs or
+    redirects, making validation unreliable.  These are skipped and assumed to
+    always have results.
     """
     key, url = pair
+    _SKIP_VALIDATION = {'amazon'}
+    if key in _SKIP_VALIDATION:
+        return key, True
     headers = {
         'User-Agent': _BROWSER_UA,
         'Accept-Language': 'en-US,en;q=0.9',
